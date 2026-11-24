@@ -1,0 +1,22 @@
+name: 测试 Telegram
+on: workflow_dispatch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 发送一条测试消息
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [[ -z "$BOT_TOKEN" || -z "$CHAT_ID" ]]; then
+            echo "::error::Telegram Token 或 Chat ID 未配置"
+            exit 1
+          fi
+          response=$(curl -sS --connect-timeout 8 --max-time 25 \
+            --data-urlencode "chat_id=$CHAT_ID" \
+            --data-urlencode "text=GitHub Actions Telegram test" \
+            "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage")
+          jq '{ok, error_code, description, retry_after: .parameters.retry_after}' <<< "$response"
+          jq -e '.ok == true' <<< "$response" >/dev/null
